@@ -2,7 +2,7 @@
 
 A minimal-effort server to run a locally hosted ClassiCube session.
 
-This should work in Linux or MacOS.
+This should work in Linux or MacOS. Requires you have mono installed via `{apt,dnf,brew} install mono`.
 
 ## Building
 

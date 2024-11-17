@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -27,8 +28,6 @@ func unpackFiles(wd string, c context.Context, wg *sync.WaitGroup) error {
 	}
 
 	filelist := []string{}
-
-	log.Println("")
 
 	for _, f := range reader.File {
 		rc, err := f.Open()
@@ -87,12 +86,12 @@ func unpackFiles(wd string, c context.Context, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func runServer(wd string, c context.Context, wg *sync.WaitGroup) error {
+func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) (func(string), error) {
 	monoExec, err := exec.LookPath("mono")
 
 	if err != nil {
 		log.Println("Could not find mono runtime for MCGalaxy server:", err)
-		return err
+		return nil, err
 	}
 
 	log.Println("Starting up MCGalaxyCLI server...")
@@ -101,14 +100,18 @@ func runServer(wd string, c context.Context, wg *sync.WaitGroup) error {
 	cmd.Dir = wd
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	stdin, err := cmd.StdinPipe()
+
+	if err != nil {
+		return nil, err
+	}
+
 	err = cmd.Start()
 
 	if err != nil {
 		log.Println("Can't start MCGalaxy:", err)
-		return err
+		return nil, err
 	}
-
-	log.Println("State", cmd.Err, cmd.ProcessState)
 
 	processdied := make(chan interface{})
 	go func() {
@@ -121,6 +124,7 @@ func runServer(wd string, c context.Context, wg *sync.WaitGroup) error {
 	go func() {
 		defer wg.Done()
 		defer cmd.Process.Kill()
+		defer stdin.Close()
 
 		if cmd.Err != nil {
 			log.Println("Command did not start up:", cmd.Err)
@@ -132,6 +136,7 @@ func runServer(wd string, c context.Context, wg *sync.WaitGroup) error {
 			break
 		case <-processdied:
 			log.Fatal("MCGalaxy died randomly?")
+			cancel()
 			return
 		}
 		log.Println("Killing MCGalaxy server...")
@@ -139,10 +144,14 @@ func runServer(wd string, c context.Context, wg *sync.WaitGroup) error {
 		cmd.Wait()
 	}()
 
-	return nil
+	sendCommand := func(command string) {
+		stdin.Write([]byte(fmt.Sprintf("%s\n", command)))
+	}
+
+	return sendCommand, nil
 }
 
-func RunGalaxyServer(c context.Context, wg *sync.WaitGroup) error {
+func RunGalaxyServer(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -160,7 +169,7 @@ func RunGalaxyServer(c context.Context, wg *sync.WaitGroup) error {
 		return err
 	}
 
-	err = runServer(wd, c, wg)
+	_, err = runServer(wd, cancel, c, wg)
 	if err != nil {
 		return err
 	}

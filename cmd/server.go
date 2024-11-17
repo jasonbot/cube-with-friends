@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"cube-with-friends/httpserver"
 	"cube-with-friends/mcgalaxyrunner"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -13,12 +15,24 @@ func main() {
 	runcontext, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := mcgalaxyrunner.RunGalaxyServer(runcontext, &wg)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for range c {
+			log.Println("Asking program to end gracefully...")
+			cancel()
+		}
+	}()
+
+	err := mcgalaxyrunner.RunGalaxyServer(cancel, runcontext, &wg)
 	if err != nil {
 		log.Fatalf("Error spinning up mc galaxy: %v", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	err = httpserver.ServeHttp(cancel, runcontext, &wg)
+	if err != nil {
+		log.Fatalf("Error spinning up mc galaxy: %v", err)
+	}
 
 	cancel()
 	wg.Wait()
