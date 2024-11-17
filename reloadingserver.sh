@@ -7,4 +7,4 @@
 #  go install github.com/air-verse/air@latest
 #
 
-air --build.cmd "go build -o ./server cmd/server.go" --build.bin "./server"
+air --build.cmd "go build -o ./server cmd/server.go" --build.bin "./server" -build.exclude_dir "game"

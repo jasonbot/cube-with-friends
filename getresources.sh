@@ -9,8 +9,8 @@ for dir in mcgalaxyrunner httpserver/static; do
 done
 
 # Server binaries
-curl https://cdn.classicube.net/client/mcg/release/MCGalaxy.zip -o mcgalaxyrunner/MCGalaxy.zip
+curl -L https://cdn.classicube.net/client/mcg/release/MCGalaxy.zip -o mcgalaxyrunner/MCGalaxy.zip
 
 # Web client resources
-curl https://classicube.net/static/default.zip -o httpserver/static/default.zip
-curl https://cs.classicube.net/client/latest/ClassiCube.js -o httpserver/static/ClassiCube.js
+curl -L https://classicube.net/static/default.zip -o httpserver/static/default.zip
+curl -L https://cs.classicube.net/client/latest/ClassiCube.js -o httpserver/static/ClassiCube.js

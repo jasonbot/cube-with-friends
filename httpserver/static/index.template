@@ -19,10 +19,26 @@
         background: #f1ecfa;
         padding: 10px 0 5px;
       }
+
+      .loginform {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .loginform form {
+        padding: 3em;
+        border-radius: 8px;
+        border: 1px solid black;
+        background: white;
+      }
     </style>
   </head>
   <body>
-    <div id="body">
+    {{ if .ShowCanvas }}
+    <div>
       <div class="sec">
         <div class="row">
           <canvas
@@ -34,7 +50,7 @@
               padding: 0;
               margin: 0 auto;
               background-color: black;
-              width: 100%;
+              width: 100vw;
               height: auto;
             "
             oncontextmenu="event.preventDefault()"
@@ -64,22 +80,27 @@
             canv_w = canv_w - 1;
           }
 
-          // Mobile mode
+          /* Mobile mode
           const screen_h = Math.min(
             window.innerHeight,
             window.outerHeight || window.innerHeight
           );
           canv_h = screen_h;
-          // Mobile mode
+          */
 
           cc_canv[0].width = canv_w * dpi;
           cc_canv[0].height = canv_h * dpi;
         }
 
+        const connection_string = JSON.parse(
+          `{{ .ConnectionString }}`.replace(/^["]/, "").replace(/["]$/, "")
+        );
+        console.log("CS", connection_string);
+
         const Module = {
           preRun: [resizeGameCanvas],
           postRun: [],
-          arguments: game_args,
+          arguments: connection_string,
           print: function (text) {
             if (arguments.length > 1)
               text = Array.prototype.slice.call(arguments).join(" ");
@@ -119,11 +140,16 @@
           };
         };
       </script>
-      <script
-        async
-        type="text/javascript"
-        src="/static/classisphere.js"
-      ></script>
+      <script async type="text/javascript" src="/static/ClassiCube.js"></script>
     </div>
+    {{ else }}
+    <div class="loginform">
+      <form action="/" method="post">
+        Username: <input type="text" name="username" /><button type="submit">
+          Go
+        </button>
+      </form>
+    </div>
+    {{ end }}
   </body>
 </html>

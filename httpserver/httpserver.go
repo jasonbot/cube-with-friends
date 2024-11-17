@@ -41,8 +41,12 @@ type RenderFlags struct {
 func mainPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
+		hostname := r.URL.Hostname()
+		if hostname == "" {
+			hostname = "bad"
+		}
 		username := r.Form.Get("username")
-		connectionstring := []string{username, "", r.URL.Hostname(), "25565"}
+		connectionstring := []string{username, "", hostname, "25565"}
 		c, _ := json.Marshal(connectionstring)
 
 		frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: true, ConnectionString: string(c)})
