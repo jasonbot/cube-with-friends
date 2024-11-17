@@ -73,8 +73,11 @@
           const dpi = window.devicePixelRatio;
           const aspect_ratio = 16 / 9;
 
-          const viewport_w = document.documentElement.clientWidth * 0.9;
-          const viewport_h = viewport_w / aspect_ratio;
+          const viewport_w = document.documentElement.clientWidth * 0.95;
+          const viewport_h = Math.min(
+            viewport_w / aspect_ratio,
+            document.documentElement.clientHeight * 0.95
+          );
 
           let canv_w = Math.round(viewport_w);
           let canv_h = Math.round(viewport_h);
@@ -144,6 +147,8 @@
             if (text) Module.printErr(`[post-exception status] ${text}`);
           };
         };
+
+        window.addEventListener("resize", resizeGameCanvas);
       </script>
       <script async type="text/javascript" src="/static/ClassiCube.js"></script>
       {{ else }}

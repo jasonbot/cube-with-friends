@@ -26,12 +26,12 @@ func main() {
 
 	err := mcgalaxyrunner.RunGalaxyServer(cancel, runcontext, &wg)
 	if err != nil {
-		log.Fatalf("Error spinning up mc galaxy: %v", err)
+		log.Fatalf("Error spinning up MCGalaxy: %v", err)
 	}
 
 	err = httpserver.ServeHttp(cancel, runcontext, &wg)
 	if err != nil {
-		log.Fatalf("Error spinning up mc galaxy: %v", err)
+		log.Fatalf("Error spinning up MCGalaxy: %v", err)
 	}
 
 	cancel()

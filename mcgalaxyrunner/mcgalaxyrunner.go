@@ -18,7 +18,7 @@ import (
 //go:embed MCGalaxy.zip
 var mcGalaxyZip []byte
 
-func unpackFiles(wd string, c context.Context, wg *sync.WaitGroup) error {
+func unpackFiles(wd string) error {
 	log.Println("Unpacking MCGalaxy files")
 
 	zipReader := bytes.NewReader(mcGalaxyZip)
@@ -26,8 +26,6 @@ func unpackFiles(wd string, c context.Context, wg *sync.WaitGroup) error {
 	if err != nil {
 		return err
 	}
-
-	filelist := []string{}
 
 	for _, f := range reader.File {
 		rc, err := f.Open()
@@ -51,37 +49,26 @@ func unpackFiles(wd string, c context.Context, wg *sync.WaitGroup) error {
 				log.Fatal(err)
 				return err
 			}
-			f, err := os.OpenFile(
-				fpath,
-				os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
-				f.Mode(),
-			)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			filelist = append(filelist, fpath)
 
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return err
+			_, err := os.Stat(fpath)
+			if os.IsNotExist(err) {
+				f, err := os.OpenFile(
+					fpath,
+					os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+					f.Mode(),
+				)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+
+				_, err = io.Copy(f, rc)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		<-c.Done()
-		log.Println("Cleaning up MCGalaxy files")
-		for _, file := range filelist {
-			err := os.Remove(file)
-			// var err error = nil
-			if err != nil {
-				log.Println("Error deleting ", file, ": ", err)
-			}
-		}
-	}()
 
 	return nil
 }
@@ -127,13 +114,14 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer cmd.Process.Kill()
-		defer stdin.Close()
 
 		if cmd.Err != nil {
 			log.Println("Command did not start up:", cmd.Err)
 			return
 		}
+
+		defer cmd.Process.Kill()
+		defer stdin.Close()
 
 		select {
 		case <-c.Done():
@@ -145,7 +133,7 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 		}
 		sendCommand("I got shut down.")
 		log.Println("Killing MCGalaxy server...")
-		cmd.Process.Kill()
+		cmd.Process.Signal(os.Interrupt)
 		cmd.Wait()
 	}()
 
@@ -165,7 +153,7 @@ func RunGalaxyServer(cancel context.CancelFunc, c context.Context, wg *sync.Wait
 		return err
 	}
 
-	err = unpackFiles(wd, c, wg)
+	err = unpackFiles(wd)
 	if err != nil {
 		return err
 	}

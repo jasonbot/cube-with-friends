@@ -4,9 +4,12 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"text/template"
 )
@@ -58,9 +61,46 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 	frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: false})
 }
 
+func connectionBanner(port int) error {
+	interfaces, err := net.Interfaces()
+
+	if err != nil {
+		return err
+	}
+
+	log.Println("===========================================")
+	log.Println("One of these URLs should work for connecting:")
+	for _, i := range interfaces {
+		addrs, err := i.Addrs()
+
+		if err != nil {
+			return err
+		}
+
+		for _, addr := range addrs {
+			ipAddress := addr.String()
+			ap := strings.Split(ipAddress, "/")
+			ipaddr := ap[0]
+			if strings.Contains(ipaddr, ":") {
+				ipaddr = fmt.Sprintf("[%s]", ipaddr)
+			}
+
+			if ipaddr == "127.0.0.1" || ipaddr == "[::1]" {
+				continue
+			}
+
+			log.Printf("* http://%s:%v/", ipaddr, port)
+		}
+	}
+	log.Println("===========================================")
+	return nil
+}
+
 func ServeHttp(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) error {
 	wg.Add(1)
 	defer wg.Done()
+
+	port := 5555
 
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/favicon.ico", http.StatusSeeOther)
@@ -68,11 +108,16 @@ func ServeHttp(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup)
 	http.Handle("/static/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/", mainPage)
 
-	listenOn := "0.0.0.0:5555"
+	listenOn := fmt.Sprintf("0.0.0.0:%v", port)
 
-	var err error
+	err := connectionBanner(port)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		log.Println("Listening to HTTP requests on", listenOn)
+		log.Println("Starting HTTP server", port)
+
 		err = http.ListenAndServe(listenOn, nil)
 		if err != nil {
 			cancel()
