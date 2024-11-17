@@ -140,28 +140,28 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 	return sendCommand, nil
 }
 
-func RunGalaxyServer(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) error {
+func RunGalaxyServer(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) (func(string), error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	wd = filepath.Join(wd, "game")
 
 	err = os.MkdirAll(wd, 0755)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = unpackFiles(wd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = runServer(wd, cancel, c, wg)
+	cmd, err := runServer(wd, cancel, c, wg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return cmd, nil
 }

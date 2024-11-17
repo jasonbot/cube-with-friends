@@ -9,9 +9,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 )
 
 //go:embed static/**
@@ -39,26 +41,6 @@ func init() {
 type RenderFlags struct {
 	ShowCanvas       bool
 	ConnectionString string
-}
-
-func mainPage(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		hostname := r.URL.Hostname()
-		if hostname == "" {
-			hostname = "localhost"
-		}
-		username := r.Form.Get("username")
-		connectionstring := []string{username, "", hostname, "25565"}
-		c, _ := json.Marshal(connectionstring)
-
-		frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: true, ConnectionString: string(c)})
-		return
-	}
-
-	w.WriteHeader(200)
-	w.Header().Add("content-type", "text/html")
-	frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: false})
 }
 
 func connectionBanner(port int) error {
@@ -96,11 +78,46 @@ func connectionBanner(port int) error {
 	return nil
 }
 
-func ServeHttp(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) error {
+func cleanupUsername(username string) string {
+	var re = regexp.MustCompile(`[^A-Za-z0-9]+`)
+	username = re.ReplaceAllString(username, `_`)
+
+	username = strings.Replace(username, " ", "_", -1)
+
+	return username
+}
+
+func ServeHttp(command func(string), cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) error {
 	wg.Add(1)
 	defer wg.Done()
 
 	port := 5555
+
+	mainPage := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			r.ParseForm()
+			hostname := r.URL.Hostname()
+			if hostname == "" {
+				hostname = "localhost"
+			}
+			username := cleanupUsername(r.Form.Get("username"))
+
+			connectionstring := []string{username, "", hostname, "25565"}
+			c, _ := json.Marshal(connectionstring)
+
+			frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: true, ConnectionString: string(c)})
+
+			go func() {
+				time.Sleep(2 * time.Second)
+				command(fmt.Sprintf("Oh hi, %s", username))
+			}()
+			return
+		}
+
+		w.WriteHeader(200)
+		w.Header().Add("content-type", "text/html")
+		frontpagetemplate.Execute(w, RenderFlags{ShowCanvas: false})
+	}
 
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/favicon.ico", http.StatusSeeOther)
