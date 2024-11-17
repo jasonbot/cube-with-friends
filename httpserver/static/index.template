@@ -16,19 +16,31 @@
       }
 
       .sec {
-        background: #f1ecfa;
-        padding: 10px 0 5px;
+        background: black;
+        padding: 0;
       }
 
-      .loginform {
+      #logmsg {
+        border-radius: 2px;
+        background: black;
+        color: red;
+        padding: 4px;
+      }
+
+      #logmsg:empty {
+        display: none;
+      }
+
+      .maincontent {
         width: 100vw;
         height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
       }
 
-      .loginform form {
+      .maincontent form {
         padding: 3em;
         border-radius: 8px;
         border: 1px solid black;
@@ -37,41 +49,35 @@
     </style>
   </head>
   <body>
-    {{ if .ShowCanvas }}
-    <div>
-      <div class="sec">
-        <div class="row">
-          <canvas
-            id="game_canvas"
-            style="
-              display: block;
-              box-sizing: border-box;
-              border-width: 0px;
-              padding: 0;
-              margin: 0 auto;
-              background-color: black;
-              width: 100vw;
-              height: auto;
-            "
-            oncontextmenu="event.preventDefault()"
-            tabindex="-1"
-            width="1000"
-            height="562"
-          ></canvas>
-          <span id="logmsg" style="font-size: 18px; color: red"></span>
-        </div>
-      </div>
+    <div class="maincontent">
+      {{ if .ShowCanvas }}
+      <canvas
+        id="game_canvas"
+        style="
+          display: block;
+          box-sizing: border-box;
+          border-width: 0px;
+          padding: 0;
+          margin: 0 auto;
+          background-color: black;
+        "
+        oncontextmenu="event.preventDefault()"
+        tabindex="-1"
+        width="800"
+        height="600"
+      ></canvas>
+      <div id="logmsg"></div>
       <script type="text/javascript">
         function resizeGameCanvas() {
-          const cc_canv = document.getElementById("game_canvas");
+          var cc_canv = document.getElementById("game_canvas");
           const dpi = window.devicePixelRatio;
           const aspect_ratio = 16 / 9;
 
-          const viewport_w = cc_canv.parent().width();
+          const viewport_w = document.documentElement.clientWidth * 0.9;
           const viewport_h = viewport_w / aspect_ratio;
 
-          const canv_w = Math.round(viewport_w);
-          const canv_h = Math.round(viewport_h);
+          let canv_w = Math.round(viewport_w);
+          let canv_h = Math.round(viewport_h);
 
           if (canv_h % 2) {
             canv_h = canv_h - 1;
@@ -88,16 +94,15 @@
           canv_h = screen_h;
           */
 
-          cc_canv[0].width = canv_w * dpi;
-          cc_canv[0].height = canv_h * dpi;
+          cc_canv.width = canv_w * dpi;
+          cc_canv.height = canv_h * dpi;
         }
 
         const connection_string = JSON.parse(
           `{{ .ConnectionString }}`.replace(/^["]/, "").replace(/["]$/, "")
         );
-        console.log("CS", connection_string);
 
-        const Module = {
+        var Module = {
           preRun: [resizeGameCanvas],
           postRun: [],
           arguments: connection_string,
@@ -112,7 +117,7 @@
             console.error(text);
           },
           canvas: (function () {
-            return document.getElementById("canvas");
+            return document.getElementById("game_canvas");
           })(),
           setStatus: function (text) {
             console.log(text);
@@ -141,15 +146,13 @@
         };
       </script>
       <script async type="text/javascript" src="/static/ClassiCube.js"></script>
-    </div>
-    {{ else }}
-    <div class="loginform">
+      {{ else }}
       <form action="/" method="post">
         Username: <input type="text" name="username" /><button type="submit">
           Go
         </button>
       </form>
+      {{ end }}
     </div>
-    {{ end }}
   </body>
 </html>

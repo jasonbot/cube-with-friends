@@ -14,3 +14,4 @@ curl -L https://cdn.classicube.net/client/mcg/release/MCGalaxy.zip -o mcgalaxyru
 # Web client resources
 curl -L https://classicube.net/static/default.zip -o httpserver/static/default.zip
 curl -L https://cs.classicube.net/client/latest/ClassiCube.js -o httpserver/static/ClassiCube.js
+curl -L https://www.classicube.net/static/favicon.ico -o httpserver/static/favicon.ico

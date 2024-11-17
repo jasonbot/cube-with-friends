@@ -106,6 +106,10 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 		return nil, err
 	}
 
+	sendCommand := func(command string) {
+		stdin.Write([]byte(fmt.Sprintf("%s\n", command)))
+	}
+
 	err = cmd.Start()
 
 	if err != nil {
@@ -139,14 +143,11 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 			cancel()
 			return
 		}
+		sendCommand("I got shut down.")
 		log.Println("Killing MCGalaxy server...")
 		cmd.Process.Kill()
 		cmd.Wait()
 	}()
-
-	sendCommand := func(command string) {
-		stdin.Write([]byte(fmt.Sprintf("%s\n", command)))
-	}
 
 	return sendCommand, nil
 }

@@ -43,7 +43,7 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		hostname := r.URL.Hostname()
 		if hostname == "" {
-			hostname = "bad"
+			hostname = "localhost"
 		}
 		username := r.Form.Get("username")
 		connectionstring := []string{username, "", hostname, "25565"}
@@ -62,6 +62,9 @@ func ServeHttp(cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup)
 	wg.Add(1)
 	defer wg.Done()
 
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/favicon.ico", http.StatusSeeOther)
+	})
 	http.Handle("/static/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/", mainPage)
 
