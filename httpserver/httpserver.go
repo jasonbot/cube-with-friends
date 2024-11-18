@@ -91,15 +91,14 @@ func ServeHttp(command func(string), cancel context.CancelFunc, c context.Contex
 	wg.Add(1)
 	defer wg.Done()
 
-	port := 5555
+	httpServerPort := 5555
 
 	mainPage := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
+			host := r.Host
+			hostname, _, _ := net.SplitHostPort(host)
+
 			r.ParseForm()
-			hostname := r.URL.Hostname()
-			if hostname == "" {
-				hostname = "localhost"
-			}
 			username := cleanupUsername(r.Form.Get("username"))
 
 			connectionstring := []string{username, "", hostname, "25565"}
@@ -125,15 +124,15 @@ func ServeHttp(command func(string), cancel context.CancelFunc, c context.Contex
 	http.Handle("/static/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/", mainPage)
 
-	listenOn := fmt.Sprintf("0.0.0.0:%v", port)
+	listenOn := fmt.Sprintf("0.0.0.0:%v", httpServerPort)
 
-	err := connectionBanner(port)
+	err := connectionBanner(httpServerPort)
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		log.Println("Starting HTTP server", port)
+		log.Println("Starting HTTP server", httpServerPort)
 
 		err = http.ListenAndServe(listenOn, nil)
 		if err != nil {
