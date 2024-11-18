@@ -70,7 +70,7 @@
       <script type="text/javascript">
         function resizeGameCanvas() {
           var cc_canv = document.getElementById("game_canvas");
-          const dpi = window.devicePixelRatio;
+          const dpi = 1.0; // window.devicePixelRatio;
           const aspect_ratio = 16 / 9;
 
           const viewport_w = document.documentElement.clientWidth * 0.95;
