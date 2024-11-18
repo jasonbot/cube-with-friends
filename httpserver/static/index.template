@@ -73,10 +73,10 @@
           const dpi = 1.0; // window.devicePixelRatio;
           const aspect_ratio = 16 / 9;
 
-          const viewport_w = document.documentElement.clientWidth * 0.95;
+          const viewport_w = document.documentElement.clientWidth * 0.99;
           const viewport_h = Math.min(
             viewport_w / aspect_ratio,
-            document.documentElement.clientHeight * 0.95
+            document.documentElement.clientHeight * 0.99
           );
 
           let canv_w = Math.round(viewport_w);
