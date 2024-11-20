@@ -18,3 +18,18 @@ go build -o server cmd/server.go
 # Or just run it where you are
 go run cmd/main.go
 ```
+
+## Running
+
+```shell
+
+# Run directly from compilation step
+$ go run cmd/main.go
+
+# or after doingh `go build`
+$ ./server
+```
+
+This will place all the necessary files in the `game/` folder, and run the serve from there. You can embed resources to 'overlay'; e.g. there is a custom `server.properties` we drop in place to disable authentication.
+
+When the server runs, it will give you a list of (possible) URLs to share with friends to get this to work in the logs.
