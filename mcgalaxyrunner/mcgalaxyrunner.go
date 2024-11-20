@@ -4,9 +4,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	_ "embed"
+	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -18,8 +19,11 @@ import (
 //go:embed MCGalaxy.zip
 var mcGalaxyZip []byte
 
-func unpackFiles(wd string) error {
-	log.Println("Unpacking MCGalaxy files")
+//go:embed game/**
+var overlayFiles embed.FS
+
+func unpackServerExecutableFiles(wd string) error {
+	log.Println("Unpacking MCGalaxy server files")
 
 	zipReader := bytes.NewReader(mcGalaxyZip)
 	reader, err := zip.NewReader(zipReader, int64(len(mcGalaxyZip)))
@@ -73,6 +77,50 @@ func unpackFiles(wd string) error {
 	return nil
 }
 
+func unpackOverlayFiles(wd string) error {
+	log.Println("Unpacking MCGalaxy overlays")
+
+	err := fs.WalkDir(overlayFiles, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if path == "game/README.txt" {
+			return nil
+		}
+
+		opath := filepath.Join(wd, strings.TrimPrefix(path, "game/"))
+
+		_, err = os.Stat(opath)
+		fileExists := true
+		if os.IsNotExist(err) {
+			fileExists = false
+		}
+
+		if d.Type().IsDir() && !fileExists {
+			log.Println("Creating directory for overlay:", path)
+			if err := os.MkdirAll(opath, 0755); err != nil {
+				return err
+			}
+		} else if d.Type().IsRegular() && !fileExists {
+			log.Println("Writing overlay:", opath)
+
+			data, err := fs.ReadFile(overlayFiles, path)
+			if err != nil {
+				return err
+			}
+
+			if err := os.WriteFile(opath, data, 0755); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync.WaitGroup) (func(string), error) {
 	monoExec, err := exec.LookPath("mono")
 
@@ -83,7 +131,7 @@ func runServer(wd string, cancel context.CancelFunc, c context.Context, wg *sync
 
 	log.Println("Starting up MCGalaxyCLI server...")
 
-	cmd := exec.Command(monoExec, "MCGalaxyCLI.exe", "/?")
+	cmd := exec.Command(monoExec, "MCGalaxyCLI.exe")
 	cmd.Dir = wd
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -153,7 +201,12 @@ func RunGalaxyServer(cancel context.CancelFunc, c context.Context, wg *sync.Wait
 		return nil, err
 	}
 
-	err = unpackFiles(wd)
+	err = unpackServerExecutableFiles(wd)
+	if err != nil {
+		return nil, err
+	}
+
+	err = unpackOverlayFiles(wd)
 	if err != nil {
 		return nil, err
 	}
