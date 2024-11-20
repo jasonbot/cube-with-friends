@@ -3,7 +3,7 @@
 set -eux
 
 for dir in mcgalaxyrunner httpserver/static; do
-    if [ -d $dir ]; then
+    if [ ! -d $dir ]; then
         mkdir -p $dir
     fi
 done
